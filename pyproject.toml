@@ -1,0 +1,14 @@
+[project]
+name = "nexus"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "aiogram>=3.22.0",
+    "asyncpg>=0.31.0",
+    "dotenv>=0.9.9",
+    "lava-top-sdk>=1.1.1",
+    "pytz>=2026.1.post1",
+    "sqlalchemy>=2.0.48",
+]

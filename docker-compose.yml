@@ -1,0 +1,67 @@
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexus-bot
+    restart: unless-stopped
+    command: ["python", "bot.py"]
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      DB_URL: ${DB_URL}
+      ADMIN_IDS: ${ADMIN_IDS:-}
+      DEBUG: ${DEBUG:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_JSON: ${LOG_JSON:-true}
+      LAVA_API: ${LAVA_API:-}
+      LAVA_ENV: ${LAVA_ENV:-production}
+      LAVA_API_URL: ${LAVA_API_URL:-https://gate.lava.top}
+      LAVA_TIMEOUT_SEC: ${LAVA_TIMEOUT_SEC:-10}
+      LAVA_MAX_RETRIES: ${LAVA_MAX_RETRIES:-2}
+      LAVA_WEBHOOK_SECRET: ${LAVA_WEBHOOK_SECRET:-}
+      LAVA_WEBHOOK_SIGNATURE_HEADER: ${LAVA_WEBHOOK_SIGNATURE_HEADER:-signature}
+      OFFER_ID_1: ${OFFER_ID_1:-}
+      OFFER_ID_3: ${OFFER_ID_3:-}
+      OFFER_ID_6: ${OFFER_ID_6:-}
+      OFFER_ID_12: ${OFFER_ID_12:-}
+      WEBHOOK_URL: ${WEBHOOK_URL:-}
+      WEBHOOK_HOST: 0.0.0.0
+      WEBHOOK_PORT: ${WEBHOOK_PORT:-7998}
+      WEBHOOK_PATH: ${WEBHOOK_PATH:-/lava/webhook}
+      WEBHOOK_QUEUE_MAXSIZE: ${WEBHOOK_QUEUE_MAXSIZE:-1000}
+      WEBHOOK_WORKERS: ${WEBHOOK_WORKERS:-4}
+    ports:
+      - "${WEBHOOK_PORT:-7998}:${WEBHOOK_PORT:-7998}"
+
+  cron:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexus-cron
+    profiles: ["cron"]
+    restart: "no"
+    command: ["python", "cron.py"]
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      DB_URL: ${DB_URL}
+      ADMIN_IDS: ${ADMIN_IDS:-}
+      DEBUG: ${DEBUG:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_JSON: ${LOG_JSON:-true}
+      LAVA_API: ${LAVA_API:-}
+      LAVA_ENV: ${LAVA_ENV:-production}
+      LAVA_API_URL: ${LAVA_API_URL:-https://gate.lava.top}
+      LAVA_TIMEOUT_SEC: ${LAVA_TIMEOUT_SEC:-10}
+      LAVA_MAX_RETRIES: ${LAVA_MAX_RETRIES:-2}
+      LAVA_WEBHOOK_SECRET: ${LAVA_WEBHOOK_SECRET:-}
+      LAVA_WEBHOOK_SIGNATURE_HEADER: ${LAVA_WEBHOOK_SIGNATURE_HEADER:-signature}
+      OFFER_ID_1: ${OFFER_ID_1:-}
+      OFFER_ID_3: ${OFFER_ID_3:-}
+      OFFER_ID_6: ${OFFER_ID_6:-}
+      OFFER_ID_12: ${OFFER_ID_12:-}
+      WEBHOOK_URL: ${WEBHOOK_URL:-}
+      WEBHOOK_HOST: 0.0.0.0
+      WEBHOOK_PORT: ${WEBHOOK_PORT:-7998}
+      WEBHOOK_PATH: ${WEBHOOK_PATH:-/lava/webhook}
+      WEBHOOK_QUEUE_MAXSIZE: ${WEBHOOK_QUEUE_MAXSIZE:-1000}
+      WEBHOOK_WORKERS: ${WEBHOOK_WORKERS:-4}

@@ -1,0 +1,15 @@
+.git
+.gitignore
+.idea
+.venv
+.pgdata
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+build
+dist
+wheels
+*.egg-info
+uv.lock
+img.png
