@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import re
 import socket
@@ -148,6 +149,30 @@ async def webhook_handler(request: web.Request) -> web.Response:
     payload = await request.text()
     signature = request.headers.get(LAVA_WEBHOOK_SIGNATURE_HEADER, "").strip() or None
     webhook_worker: LavaWebhookWorkerService = request.app["webhook_worker"]
+
+    if not payload.strip():
+        logger.warning(
+            "Webhook payload is empty",
+            extra={
+                "content_length": request.content_length,
+                "content_type": request.content_type,
+            },
+        )
+        return web.json_response({"status": "invalid_json"}, status=400)
+
+    try:
+        json.loads(payload)
+    except json.JSONDecodeError as exc:
+        logger.warning(
+            "Webhook payload is not valid JSON",
+            extra={
+                "content_length": request.content_length,
+                "content_type": request.content_type,
+                "json_error": str(exc),
+                "payload_preview": payload[:200],
+            },
+        )
+        return web.json_response({"status": "invalid_json"}, status=400)
 
     if not webhook_worker.enqueue(payload=payload, signature=signature):
         return web.json_response({"status": "busy"}, status=503)
