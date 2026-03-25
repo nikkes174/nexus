@@ -24,6 +24,7 @@ from tg_bot.keybords.replay import (
     INSTRUCTION_TEXT,
     INVITE_FRIEND_TEXT,
     PROFILE_TEXT,
+    SUPPORT_TEXT,
     start_keyboard as reply_start_keyboard,
 )
 from tg_bot.service.payment import PaymentConfigError, PaymentRequestError, PaymentService
@@ -55,23 +56,21 @@ async def start(message: types.Message) -> None:
         )
 
     first_text = (
-        "👋 Добро пожаловать в Nexus!\n\n"
-        "Премиум VPN на собственной инфраструктуре.\n\n"
+        "👋 Nexus\n\n"
+        "Премиальный VPN на собственной инфраструктуре.\n\n"
 
-        "🏗️ ВЫДЕЛЕННЫЕ СЕРВЕРЫ\n"
-        "Собственные стойки в дата-центрах с каналами 50 Гбит/с на основных локациях.\n\n"
+        "⚙️ ИНФРАСТРУКТУРА\n"
+        "Выделенные серверы в дата-центрах и каналы до 50 Гбит/с на ключевых локациях."
+        "Без перегрузок, без деления ресурсов – стабильная скорость в любое время.\n\n"
 
-        "Большинство сервисов используют дешевые облачные решения (VPS), где ресурсы делятся между множеством арендаторов. "
-        "В результате вы получаете нестабильное соединение, падение скорости в часы пик и обрывы во время игр.\n\n"
 
-        "Мы инвестировали в собственное железо. Это дороже, но дает полный контроль над качеством и стабильностью.\n\n"
-
-        "🔒 ПРИВАТНОСТЬ И ТЕХНОЛОГИИ\n"
-        "• Шифрование TLS — защита всего трафика\n"
-        "• No-Logs — не храним логи\n"
-        "• Double VPN — двойное шифрование для максимальной анонимности\n"
-        "• Работает на Белых Списках\n"
-        "• Доступен YouTube, стриминги и любые сервисы\n\n"
+        "🔐 БЕЗОПАСНОСТЬ\n"
+        "• TLS-шифрование\n"
+        "• Политика No-Logs\n"
+        "• Double VPN\n"
+        "• Работа через белые списки\n"
+        "• Свободный доступ к YouTube, стримингам и онлайн-сервисам.\n\n"
+        "Nexus – когда важны стабильность, скорость и приватность без компромиссов."
 
     )
 
@@ -88,7 +87,8 @@ async def start(message: types.Message) -> None:
 
 async def send_tariff_menu(message: Message) -> None:
     await message.answer(
-        "Выберите подписку",
+        "⚡️Выберите подписку\n"
+        "❗️Перед оплатой у вас запросит вашу почту для того, чтобы пришел чек",
         reply_markup=tariff_keyboard(),
     )
 
@@ -148,6 +148,13 @@ async def invite_friend_from_reply(message: Message) -> None:
     await send_invite_friend_info(message, message.from_user.id)
 
 
+@router.message(F.text == SUPPORT_TEXT)
+async def support_from_reply(message: Message) -> None:
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text=SUPPORT_TEXT, url="https://t.me/nex_supports"))
+    await message.answer("https://t.me/nex_supports", reply_markup=builder.as_markup())
+
+
 @router.callback_query(F.data == "buy_subscription")
 async def buy_subscription_from_inline(callback: CallbackQuery) -> None:
     await callback.answer()
@@ -195,8 +202,12 @@ async def select_tariff(callback: CallbackQuery, state: FSMContext) -> None:
 
     if callback.message is not None:
         await callback.message.answer(
-            f"Вы выбрали тариф: {tariff.title} за {tariff.amount_rub}₽.\n"
-            "Отправьте email, на который будет создана ссылка для оплаты."
+            f"✅Вы выбрали тариф: {tariff.title} за {tariff.amount_rub}₽.\n"
+            "📩Отправьте email, на который будет создана ссылка для оплаты.\n"
+            "☝️Приобретая подписку вы соглашаетесь с "
+            "<a href='https://telegra.ph/Polzovatelskoe-soglashenie-03-25-15'>офертой</a>\n"
+            "🙏🏽Не переживайте, у нас нет авто-списаний, все платежи разовые",
+            parse_mode="HTML"
         )
 
 
@@ -261,7 +272,7 @@ async def connect_info(message: Message) -> None:
         '<a href="https://play.google.com/store/apps/details?id=in.happyplus&pcampaignid=web_share">Happ</a> или '
         '<a href="https://play.google.com/store/apps/details?id=com.v2raytun.android&pcampaignid=web_share">V2Raytun</a>\n'
         "2. Нажмите на вашу ссылку для подключения, она будет скопирована\n"
-        "3. Зайдите в приложение нажмите ➕ для подключения, далее «Вставить из буфера обмена»"
+        "3. Зайдите в приложение нажмите ➕ для подключения, далее «Вставить из буфера обмена»\n"
         "❗️<a href='https://telegra.ph/INSTRUKCIYA-PO-PODKLYUCHENIYU-03-23'>Подробное описание</a>"
     )
 
