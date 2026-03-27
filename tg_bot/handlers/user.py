@@ -15,6 +15,7 @@ try:
 except ImportError:
     CopyTextButton = None
 
+from config import ADMIN_IDS
 from db.crud import UserRepository
 from db.db import AsyncSessionLocal
 from db.service import TrialActivationService
@@ -28,32 +29,66 @@ from tg_bot.keybords.replay import (
     start_keyboard as reply_start_keyboard,
 )
 from tg_bot.service.payment import PaymentConfigError, PaymentRequestError, PaymentService
+from tg_bot.service.blogger_referral import BloggerReferralService
 from tg_bot.service.referal_system import ReferralRewardService
 
 router = Router()
 START_IMAGE_PATH = Path("files/1.jpg")
 EMAIL_PATTERN = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 TARIFF_CALLBACKS = {"one_month", "three_month", "six_month", "twelveteen_month"}
-START_REF_PATTERN = re.compile(r"^/start(?:\s+ref_(?P<telegram_id>\d+))?$")
+START_PARAM_PATTERN = re.compile(
+    r"^/start(?:\s+(?:ref_(?P<ref_telegram_id>\d+)|blog_(?P<blogger_code>[A-Za-z0-9_-]+)))?$"
+)
 
 
 class PaymentStates(StatesGroup):
     waiting_email = State()
 
 
+class AdminStates(StatesGroup):
+    waiting_blogger_name = State()
+
+
+def is_admin(telegram_user_id: int) -> bool:
+    return telegram_user_id in ADMIN_IDS
+
+
+def admin_panel_keyboard():
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text="Панель админа", callback_data="admin_panel"))
+    return builder.as_markup()
+
+
+def admin_actions_keyboard():
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text="Сгенерировать ссылку для блогера", callback_data="admin_create_blogger_link"))
+    builder.adjust(1)
+    return builder.as_markup()
+
+
 @router.message(CommandStart())
 async def start(message: types.Message) -> None:
     inviter_telegram_id = None
-    match = START_REF_PATTERN.fullmatch((message.text or "").strip())
-    if match is not None and match.group("telegram_id"):
-        inviter_telegram_id = int(match.group("telegram_id"))
+    blogger_code = None
+    match = START_PARAM_PATTERN.fullmatch((message.text or "").strip())
+    if match is not None and match.group("ref_telegram_id"):
+        inviter_telegram_id = int(match.group("ref_telegram_id"))
+    if match is not None and match.group("blogger_code"):
+        blogger_code = match.group("blogger_code")
 
     async with AsyncSessionLocal() as session:
-        await ReferralRewardService(session).register_referral_start(
-            inviter_telegram_id=inviter_telegram_id,
-            invited_telegram_id=message.from_user.id,
-            invited_username=message.from_user.username,
-        )
+        if blogger_code is not None:
+            await BloggerReferralService(session).register_blogger_start(
+                blogger_code=blogger_code,
+                telegram_user_id=message.from_user.id,
+                username=message.from_user.username,
+            )
+        else:
+            await ReferralRewardService(session).register_referral_start(
+                inviter_telegram_id=inviter_telegram_id,
+                invited_telegram_id=message.from_user.id,
+                invited_username=message.from_user.username,
+            )
 
     first_text = (
         "👋 Nexus\n\n"
@@ -155,6 +190,32 @@ async def support_from_reply(message: Message) -> None:
     await message.answer("https://t.me/nex_supports", reply_markup=builder.as_markup())
 
 
+@router.callback_query(F.data == "admin_panel")
+async def open_admin_panel(callback: CallbackQuery) -> None:
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
+    await callback.answer()
+    if callback.message is not None:
+        await callback.message.answer(
+            "Панель администратора",
+            reply_markup=admin_actions_keyboard(),
+        )
+
+
+@router.callback_query(F.data == "admin_create_blogger_link")
+async def admin_create_blogger_link(callback: CallbackQuery, state: FSMContext) -> None:
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
+    await callback.answer()
+    await state.set_state(AdminStates.waiting_blogger_name)
+    if callback.message is not None:
+        await callback.message.answer("Отправьте имя блогера, для которого нужно создать ссылку.")
+
+
 @router.callback_query(F.data == "buy_subscription")
 async def buy_subscription_from_inline(callback: CallbackQuery) -> None:
     await callback.answer()
@@ -251,6 +312,36 @@ async def create_payment_link(message: Message, state: FSMContext) -> None:
     )
 
     await message.answer(text, reply_markup=builder.as_markup())
+
+
+@router.message(AdminStates.waiting_blogger_name)
+async def save_blogger_link(message: Message, state: FSMContext) -> None:
+    if not is_admin(message.from_user.id):
+        await state.clear()
+        return
+
+    blogger_name = (message.text or "").strip()
+    if not blogger_name:
+        await message.answer("Имя блогера не должно быть пустым.")
+        return
+
+    bot_info = await message.bot.get_me()
+    async with AsyncSessionLocal() as session:
+        result = await BloggerReferralService(session).create_blogger_link(blogger_name=blogger_name)
+
+    await state.clear()
+
+    if not result.created or not result.code:
+        await message.answer("Не удалось создать ссылку для блогера.")
+        return
+
+    blogger_link = f"https://t.me/{bot_info.username}?start=blog_{result.code}"
+    await message.answer(
+        f"Ссылка для блогера создана.\n\n"
+        f"Блогер: {result.blogger_name}\n"
+        f"Код: {result.code}\n"
+        f"Ссылка: {blogger_link}"
+    )
 
 
 @router.message(F.text == INSTRUCTION_TEXT)

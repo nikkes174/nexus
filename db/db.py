@@ -48,6 +48,41 @@ async def init_db() -> None:
         )
         await conn.exec_driver_sql(
             """
+            CREATE TABLE IF NOT EXISTS blogger_referral_links (
+                id SERIAL PRIMARY KEY,
+                code VARCHAR(100) NOT NULL UNIQUE,
+                blogger_name VARCHAR(255) NULL,
+                total_paid_count INTEGER NOT NULL DEFAULT 0,
+                last_paid_amount INTEGER NULL,
+                total_paid_amount INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+        await conn.exec_driver_sql(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS blogger_referral_link_id INTEGER"
+        )
+        await conn.exec_driver_sql(
+            """
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'users_blogger_referral_link_id_fkey'
+                ) THEN
+                    ALTER TABLE users
+                    ADD CONSTRAINT users_blogger_referral_link_id_fkey
+                    FOREIGN KEY (blogger_referral_link_id) REFERENCES blogger_referral_links(id) ON DELETE SET NULL;
+                END IF;
+            END$$
+            """
+        )
+        await conn.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_blogger_referral_links_code ON blogger_referral_links (code)"
+        )
+        await conn.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_users_blogger_referral_link_id ON users (blogger_referral_link_id)"
+        )
+        await conn.exec_driver_sql(
+            """
             CREATE TABLE IF NOT EXISTS referrals (
                 id SERIAL PRIMARY KEY,
                 inviter_user_id INTEGER NULL REFERENCES users(id) ON DELETE SET NULL,

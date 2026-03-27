@@ -6,7 +6,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from db.models import LinkModel, ReferralModel, SubscriptionModel, TrialModel, UserModel
+from db.models import BloggerReferralLinkModel, LinkModel, ReferralModel, SubscriptionModel, TrialModel, UserModel
 
 
 class BaseRepository:
@@ -36,6 +36,7 @@ class UserRepository(BaseRepository):
                 selectinload(UserModel.subscription),
                 selectinload(UserModel.trial),
                 selectinload(UserModel.links),
+                selectinload(UserModel.blogger_referral_link),
             )
             .where(UserModel.id == user_id)
         )
@@ -49,6 +50,7 @@ class UserRepository(BaseRepository):
                 selectinload(UserModel.subscription),
                 selectinload(UserModel.trial),
                 selectinload(UserModel.links),
+                selectinload(UserModel.blogger_referral_link),
             )
             .where(UserModel.telegram_id == telegram_id)
         )
@@ -62,6 +64,7 @@ class UserRepository(BaseRepository):
                 selectinload(UserModel.subscription),
                 selectinload(UserModel.trial),
                 selectinload(UserModel.links),
+                selectinload(UserModel.blogger_referral_link),
             )
             .offset(offset)
             .limit(limit)
@@ -94,6 +97,20 @@ class UserRepository(BaseRepository):
             return None
 
         user.referrals_count += value
+        await self.session.flush()
+        await self.session.refresh(user)
+        return user
+
+    async def set_blogger_referral_link(
+        self,
+        user_id: int,
+        blogger_referral_link_id: int,
+    ) -> UserModel | None:
+        user = await self.get_by_id(user_id)
+        if user is None:
+            return None
+
+        user.blogger_referral_link_id = blogger_referral_link_id
         await self.session.flush()
         await self.session.refresh(user)
         return user
@@ -385,3 +402,62 @@ class ReferralRepository(BaseRepository):
         )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
+
+
+class BloggerReferralLinkRepository(BaseRepository):
+    async def create(
+        self,
+        *,
+        code: str,
+        blogger_name: str | None = None,
+    ) -> BloggerReferralLinkModel:
+        blogger_referral_link = BloggerReferralLinkModel(
+            code=code,
+            blogger_name=blogger_name,
+        )
+        return await self.add(blogger_referral_link)
+
+    async def get_by_id(self, blogger_referral_link_id: int) -> BloggerReferralLinkModel | None:
+        stmt = (
+            select(BloggerReferralLinkModel)
+            .options(selectinload(BloggerReferralLinkModel.users))
+            .where(BloggerReferralLinkModel.id == blogger_referral_link_id)
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def get_by_code(self, code: str) -> BloggerReferralLinkModel | None:
+        stmt = (
+            select(BloggerReferralLinkModel)
+            .options(selectinload(BloggerReferralLinkModel.users))
+            .where(BloggerReferralLinkModel.code == code)
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def list_all(self, limit: int = 100, offset: int = 0) -> list[BloggerReferralLinkModel]:
+        stmt = (
+            select(BloggerReferralLinkModel)
+            .options(selectinload(BloggerReferralLinkModel.users))
+            .offset(offset)
+            .limit(limit)
+            .order_by(BloggerReferralLinkModel.id)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def register_payment(
+        self,
+        blogger_referral_link_id: int,
+        amount_rub: int,
+    ) -> BloggerReferralLinkModel | None:
+        blogger_referral_link = await self.get_by_id(blogger_referral_link_id)
+        if blogger_referral_link is None:
+            return None
+
+        blogger_referral_link.total_paid_count += 1
+        blogger_referral_link.last_paid_amount = amount_rub
+        blogger_referral_link.total_paid_amount += amount_rub
+        await self.session.flush()
+        await self.session.refresh(blogger_referral_link)
+        return blogger_referral_link

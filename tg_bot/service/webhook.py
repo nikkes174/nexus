@@ -19,7 +19,8 @@ from config import (
 from db.crud import SubscriptionRepository, UserRepository
 from db.service import LinkAssignmentService
 from logging_config import get_logger
-from tg_bot.service.payment import PaymentConfigError, TariffCode
+from tg_bot.service.blogger_referral import BloggerReferralService
+from tg_bot.service.payment import PaymentConfigError, PaymentService, TariffCode
 from tg_bot.service.referal_system import ReferralRewardService
 
 USER_ID_PATTERN = re.compile(r"^tg_user_id:(?P<telegram_id>\d+)$")
@@ -96,11 +97,14 @@ class LavaWebhookService:
         telegram_user_id = cls._extract_telegram_user_id(
             event.clientUtm.utm_content if event.clientUtm else None
         )
+        tariff = TariffCode(tariff_code)
+        payment_amount = cls._extract_payment_amount(tariff)
 
         user_repo = UserRepository(session)
         subscription_repo = SubscriptionRepository(session)
         link_assignment_service = LinkAssignmentService(session)
         referral_reward_service = ReferralRewardService(session)
+        blogger_referral_service = BloggerReferralService(session)
 
         user, _ = await user_repo.get_or_create(telegram_id=telegram_user_id)
         subscription = await subscription_repo.get_by_user_id(user.id)
@@ -110,7 +114,7 @@ class LavaWebhookService:
             and subscription.end_subscriptions >= date.today()
         )
 
-        months = TARIFF_MONTHS[TariffCode(tariff_code)]
+        months = TARIFF_MONTHS[tariff]
         new_end = cls._calculate_subscription_end(
             current_end=subscription.end_subscriptions if subscription is not None else None,
             months=months,
@@ -131,6 +135,10 @@ class LavaWebhookService:
                 )
 
             link_assignment_result = await link_assignment_service.assign_free_link_to_user(user.id)
+            await blogger_referral_service.register_payment(
+                user_id=user.id,
+                amount_rub=payment_amount,
+            )
             referral_reward_result = await referral_reward_service.apply_reward_for_paid_referral(
                 invited_user_id=user.id,
                 invited_telegram_id=telegram_user_id,
@@ -162,6 +170,10 @@ class LavaWebhookService:
             return TariffCode(utm_campaign).value
         except ValueError as exc:
             raise WebhookPayloadError("В webhook пришёл неизвестный тариф") from exc
+
+    @staticmethod
+    def _extract_payment_amount(tariff_code: TariffCode) -> int:
+        return PaymentService.get_tariff(tariff_code.value).amount_rub
 
     @staticmethod
     def _extract_telegram_user_id(utm_content: str | None) -> int:

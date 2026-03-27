@@ -16,6 +16,11 @@ class UserModel(Base):
     telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True, index=True)
     user_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     referrals_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    blogger_referral_link_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("blogger_referral_links.id", ondelete="SET NULL"),
+        index=True,
+        nullable=True,
+    )
 
     subscription: Mapped[Optional["SubscriptionModel"]] = relationship(
         back_populates="user",
@@ -39,6 +44,9 @@ class UserModel(Base):
         back_populates="invited",
         foreign_keys="ReferralModel.invited_user_id",
         uselist=False,
+    )
+    blogger_referral_link: Mapped[Optional["BloggerReferralLinkModel"]] = relationship(
+        back_populates="users",
     )
 
 
@@ -119,3 +127,16 @@ class ReferralModel(Base):
         back_populates="received_referral",
         foreign_keys=[invited_user_id],
     )
+
+
+class BloggerReferralLinkModel(Base):
+    __tablename__ = "blogger_referral_links"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    code: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
+    blogger_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    total_paid_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    last_paid_amount: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    total_paid_amount: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+
+    users: Mapped[list[UserModel]] = relationship(back_populates="blogger_referral_link")

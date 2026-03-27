@@ -12,8 +12,9 @@ from aiohttp import web
 from aiogram import Bot, Dispatcher
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.exceptions import TelegramNetworkError
-from aiogram.types import BotCommand, MenuButtonCommands
+from aiogram.types import BotCommand, InlineKeyboardButton, MenuButtonCommands
 from aiogram.types.bot_command_scope_default import BotCommandScopeDefault
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy.exc import DBAPIError
 
 from config import (
@@ -121,10 +122,16 @@ async def on_startup(bot: Bot, admin_ids: list[int]) -> None:
     ]
     await bot.set_my_commands(commands, scope=BotCommandScopeDefault())
     await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
+    admin_keyboard = InlineKeyboardBuilder()
+    admin_keyboard.add(InlineKeyboardButton(text="Панель админа", callback_data="admin_panel"))
 
     for admin_id in admin_ids:
         try:
-            await bot.send_message(chat_id=admin_id, text="Бот запущен")
+            await bot.send_message(
+                chat_id=admin_id,
+                text="Бот запущен",
+                reply_markup=admin_keyboard.as_markup(),
+            )
         except Exception:
             logger.exception("Admin startup message failed", extra={"admin_id": admin_id})
 
