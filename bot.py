@@ -8,13 +8,14 @@ import socket
 import sys
 
 import asyncpg
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiohttp import web
 from aiogram import Bot, Dispatcher
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.exceptions import TelegramNetworkError
-from aiogram.types import BotCommand, InlineKeyboardButton, MenuButtonCommands
+from aiogram.types import BotCommand, MenuButtonCommands, InlineKeyboardButton
+from aiogram.types.bot_command_scope_chat import BotCommandScopeChat
 from aiogram.types.bot_command_scope_default import BotCommandScopeDefault
-from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy.exc import DBAPIError
 
 from config import (
@@ -136,6 +137,27 @@ async def on_startup(bot: Bot, admin_ids: list[int]) -> None:
             logger.exception("Admin startup message failed", extra={"admin_id": admin_id})
 
 
+async def on_startup(bot: Bot, admin_ids: list[int]) -> None:
+    commands = [
+        BotCommand(command="start", description="РџРµСЂРµР·Р°РїСѓСЃРє Р±РѕС‚Р°"),
+    ]
+    await bot.set_my_commands(commands, scope=BotCommandScopeDefault())
+    await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
+
+    for admin_id in admin_ids:
+        try:
+            await bot.set_my_commands(
+                commands=[
+                    BotCommand(command="start", description="РџРµСЂРµР·Р°РїСѓСЃРє Р±РѕС‚Р°"),
+                    BotCommand(command="admin", description="РџР°РЅРµР»СЊ Р°РґРјРёРЅР°"),
+                ],
+                scope=BotCommandScopeChat(chat_id=admin_id),
+            )
+            await bot.send_message(chat_id=admin_id, text="Р‘РѕС‚ Р·Р°РїСѓС‰РµРЅ")
+        except Exception:
+            logger.exception("Admin startup message failed", extra={"admin_id": admin_id})
+
+
 async def run_telegram_step(step_name: str, awaitable) -> None:
     logger.info("Telegram startup step", extra={"step": step_name})
     try:
@@ -213,6 +235,21 @@ async def start_webhook_server(bot: Bot) -> tuple[web.AppRunner, LavaWebhookWork
         },
     )
     return runner, webhook_worker
+
+
+async def on_startup(bot: Bot, admin_ids: list[int]) -> None:
+    commands = [
+        BotCommand(command="start", description="Перезапуск бота"),
+        BotCommand(command="admin_panel", description="Панель админа"),
+    ]
+    await bot.set_my_commands(commands, scope=BotCommandScopeDefault())
+    await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
+
+    for admin_id in admin_ids:
+        try:
+            await bot.send_message(chat_id=admin_id, text="Бот запущен")
+        except Exception:
+            logger.exception("Admin startup message failed", extra={"admin_id": admin_id})
 
 
 async def main() -> None:

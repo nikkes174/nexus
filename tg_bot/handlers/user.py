@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 
 from aiogram import F, Router, types
-from aiogram.filters import CommandStart
+from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, FSInputFile, InlineKeyboardButton, Message
@@ -202,6 +202,18 @@ async def open_admin_panel(callback: CallbackQuery) -> None:
             "Панель администратора",
             reply_markup=admin_actions_keyboard(),
         )
+
+
+@router.message(Command("admin_panel"))
+async def open_admin_panel_command(message: Message) -> None:
+    if not is_admin(message.from_user.id):
+        await message.answer("Нет доступа.")
+        return
+
+    await message.answer(
+        "Панель администратора",
+        reply_markup=admin_actions_keyboard(),
+    )
 
 
 @router.callback_query(F.data == "admin_create_blogger_link")
