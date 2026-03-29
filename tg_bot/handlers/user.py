@@ -375,8 +375,8 @@ async def connect_info(message: Message) -> None:
         '<a href="https://play.google.com/store/apps/details?id=in.happyplus&pcampaignid=web_share">Happ</a> или '
         '<a href="https://play.google.com/store/apps/details?id=com.v2raytun.android&pcampaignid=web_share">V2Raytun</a>\n'
         "2. Нажмите на вашу ссылку для подключения, она будет скопирована\n"
-        "3. Зайдите в приложение нажмите ➕ для подключения, далее «Вставить из буфера обмена»\n"
-        "❗️Ребята, вы сами видите, что происходит.\n\n"
+        "3. Зайдите в приложение нажмите ➕ для подключения, далее «Вставить из буфера обмена»\n\n"
+        "❗️Ребята, вы сами видите, что происходит.\n"
         "Из российского App Store убрали часть приложений для доступа (Happ, v2raytun).\n"
         "☝С другим регионом они доступны. Мы уже нашли альтернативы – ссылки ниже.\n"
         '<a href="https://apps.apple.com/app/id6756558545">VPNET</a> или '
