@@ -376,7 +376,14 @@ async def connect_info(message: Message) -> None:
         '<a href="https://play.google.com/store/apps/details?id=com.v2raytun.android&pcampaignid=web_share">V2Raytun</a>\n'
         "2. Нажмите на вашу ссылку для подключения, она будет скопирована\n"
         "3. Зайдите в приложение нажмите ➕ для подключения, далее «Вставить из буфера обмена»\n"
-        "❗️<a href='https://telegra.ph/INSTRUKCIYA-PO-PODKLYUCHENIYU-03-23'>Подробное описание</a>"
+        "❗️❗️❗️Ребята, вы сами видите, что происходит.\n"
+        "Из российского App Store убрали часть приложений для доступа (Happ, v2raytun).\n"
+        "☝️С другим регионом они доступны. Мы уже нашли альтернативы – ссылки ниже.\n"
+        '<a href="https://apps.apple.com/app/id6756558545">VPNET</a> или '
+        '<a href="https://apps.apple.com/ru/app/npv-tunnel/id1629465476">V2rayu</a>\n\n'
+        "Если снова удалят – пишите в поддержку: @nex_supports\n"
+        "Либо меняйте регион или создавайте новый аккаунт."
+        "❗️<a href='https://telegra.ph/INSTRUKCIYA-PO-PODKLYUCHENIYU-03-23'>Подробное описание установки</a>"
     )
 
     if user_link:
